@@ -10,20 +10,20 @@ class RotEquivConv2D(tf.keras.layers.Layer):
             out_features,
             filt_shape, 
             rot_axis=True,
-            activation=tf.nn.relu,
+            activation='relu',
             use_bias=True,
-            kernel_initializer=tf.keras.initializers.glorot_uniform,
-            bias_initializer=tf.keras.initializers.zeros,
+            kernel_initializer='glorot_uniform',
+            bias_initializer='zeros',
             **kwargs):
         super().__init__(**kwargs)
         self.out_features = out_features
         self.filt_shape = filt_shape
         self.rot_axis = rot_axis
-        self.activation = activation
+        self.activation = tf.keras.activations.get(activation)
         self.use_bias = use_bias
-        self.kernel_initializer = kernel_initializer()
+        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
         if use_bias:
-            self.bias_initializer = bias_initializer()
+            self.bias_initializer = tf.keras.initializers.get(bias_initializer)
 
     def build(self, input_shape):  # Create the layer when it is first called
         self.in_features = input_shape[-1]
