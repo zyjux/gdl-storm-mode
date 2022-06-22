@@ -4,11 +4,11 @@ model:
     pool_sizes: [2, 2, 2, 1]
     metrics: ['mse']
     conv_2d_activation: 'relu'
-    dense_activation: None
-    dense_regularizer: None
+    dense_activation: null
+    dense_regularizer: null
     lr: 0.001
     optimizer: 'nadam'
-    epochs: 10
+    epochs: 1 
     batch_size: 32
     rot_inv: True
     verbose: 0

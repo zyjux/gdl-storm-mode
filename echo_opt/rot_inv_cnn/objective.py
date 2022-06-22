@@ -3,15 +3,16 @@ from os.path import join
 import xarray as xr
 import pandas as pd
 import numpy as np
-from imports.GDL_model import gdl_model
 from echo.src.base_objective import BaseObjective
 from echo.src.pruners import KerasPruningCallback
+import sys
+sys.path.append("/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn")
+from imports.GDL_model import gdl_model
 
 
 class Objective(BaseObjective):
-    def __init__(self, config, metric='val_loss', device='cpu'):
-        BaseObjective.__init__(self, config, metric, device)
-        print('hello')
+    def __init__(self, config, metric='val_loss'):
+        BaseObjective.__init__(self, config, metric)
 
     def train(self, trial, conf):
 
