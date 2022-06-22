@@ -3,11 +3,35 @@ from os.path import join
 import xarray as xr
 import pandas as pd
 import numpy as np
+import optuna
 from echo.src.base_objective import BaseObjective
 from echo.src.pruners import KerasPruningCallback
 import sys
 sys.path.append("/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn")
 from imports.GDL_model import gdl_model
+
+
+def custom_updates(trial, conf):
+
+    hyperparameters = conf["optuna"]["parameters"]
+
+    filter1 = trial.suggest_int(**hyperparameters["filter1"]["settings"])
+    filter2 = trial.suggest_int(**hyperparameters["filter2"]["settings"])
+    filter3 = trial.suggest_int(**hyperparameters["filter3"]["settings"])
+    filter4 = trial.suggest_int(**hyperparameters["filter4"]["settings"])
+    kernel1 = trial.suggest_int(**hyperparameters["kernel1"]["settings"])
+    kernel2 = trial.suggest_int(**hyperparameters["kernel2"]["settings"])
+    kernel3 = trial.suggest_int(**hyperparameters["kernel3"]["settings"])
+    kernel4 = trial.suggest_int(**hyperparameters["kernel4"]["settings"])
+    pool1 = trial.suggest_int(**hyperparameters["pool1"]["settings"])
+    pool2 = trial.suggest_int(**hyperparameters["pool2"]["settings"])
+    pool3 = trial.suggest_int(**hyperparameters["pool3"]["settings"])
+
+    conf["model"]["filters"] = [filter1, filter2, filter3, filter4]
+    conf["model"]["kernel_sizes"] = [kernel1, kernel2, kernel3, kernel4]
+    conf["model"]["pool_sizes"] = [pool1, pool2, pool3, 1]
+
+    return conf
 
 
 class Objective(BaseObjective):
@@ -17,7 +41,7 @@ class Objective(BaseObjective):
     def train(self, trial, conf):
 
         # Make custom updates to model conf
-        # conf = custom_updates(trial, conf)
+        conf = custom_updates(trial, conf)
 
         # Find a list of all the datafiles
         patch_path = "/glade/scratch/lverhoef/WRF_all/track_data_hrrr_3km_nc_refl/"
@@ -74,7 +98,10 @@ class Objective(BaseObjective):
         model = gdl_model(**conf["model"])
 
         callbacks = [KerasPruningCallback(trial, self.metric, interval=1)]
-        result = model.fit(input_train_norm, output_train, xv=input_val_norm, yv=output_val, callbacks=callbacks)
+        try:
+            result = model.fit(input_train_norm, output_train, xv=input_val_norm, yv=output_val, callbacks=callbacks)
+        except ValueError:
+            raise optuna.TrialPruned()
 
         results_dictionary = {
             "train_loss": result["loss"],

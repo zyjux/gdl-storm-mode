@@ -35,3 +35,74 @@ optuna:
                 name: "batch_size"
                 low: 8
                 high: 128
+        model:dense_regularizer:
+            type: "categorical"
+            settings:
+                name: "dense_regularizer"
+                choices: [null, "L1", "L2"]
+        filter1:
+            type: "int"
+            settings:
+                name: "filter1"
+                low: 8
+                high: 128
+        filter2:
+            type: "int"
+            settings:
+                name: "filter1"
+                low: 8
+                high: 128
+        filter3:
+            type: "int"
+            settings:
+                name: "filter1"
+                low: 8
+                high: 128
+        filter4:
+            type: "int"
+            settings:
+                name: "filter1"
+                low: 8
+                high: 128
+        kernel1:
+            type: "int"
+            settings:
+                name: "kernel1"
+                low: 3
+                high: 5
+        kernel2:
+            type: "int"
+            settings:
+                name: "kernel1"
+                low: 3
+                high: 5
+        kernel3:
+            type: "int"
+            settings:
+                name: "kernel1"
+                low: 3
+                high: 5
+        kernel4:
+            type: "int"
+            settings:
+                name: "kernel1"
+                low: 3
+                high: 5
+        pool1:
+            type: "int"
+            settings:
+                name: "pool1"
+                low: 2
+                high: 6
+        pool2:
+            type: "int"
+            settings:
+                name: "pool1"
+                low: 2
+                high: 6
+        pool3:
+            type: "int"
+            settings:
+                name: "pool1"
+                low: 2
+                high: 6
