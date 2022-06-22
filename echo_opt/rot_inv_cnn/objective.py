@@ -5,12 +5,14 @@ import pandas as pd
 import numpy as np
 from imports.GDL_model import gdl_model
 from echo.src.base_objective import BaseObjective
-from echo.src.pruning import KerasPruningCallback
+from echo.src.pruners import KerasPruningCallback
 
 
 class Objective(BaseObjective):
     def __init__(self, config, metric='val_loss', device='cpu'):
-        BaseObjective.__init__(self, config, metric, device)
+        # BaseObjective.__init__(self, config, metric, device)
+        self.metric = metric
+        print('hello')
 
     def train(self, trial, conf):
 
@@ -69,9 +71,9 @@ class Objective(BaseObjective):
         output_train = output_data[train_indices]
         output_val = output_data[val_indices]
 
-        model = gdl_model(conf)
+        model = gdl_model(**conf["model"])
 
-        callbacks = [KerasPruningCallback(trial, self.metric, interval=1)]
+        callbacks = []  # [KerasPruningCallback(trial, self.metric, interval=1)]
         result = model.fit(input_train_norm, output_train, xv=input_val_norm, yv=output_val, callbacks=callbacks)
 
         results_dictionary = {
