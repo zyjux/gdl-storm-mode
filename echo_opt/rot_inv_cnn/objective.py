@@ -19,13 +19,19 @@ def custom_updates(trial, conf):
     filter2 = trial.suggest_int(**hyperparameters["filter2"]["settings"])
     filter3 = trial.suggest_int(**hyperparameters["filter3"]["settings"])
     filter4 = trial.suggest_int(**hyperparameters["filter4"]["settings"])
-    kernel1 = trial.suggest_int(**hyperparameters["kernel1"]["settings"])
-    kernel2 = trial.suggest_int(**hyperparameters["kernel2"]["settings"])
-    kernel3 = trial.suggest_int(**hyperparameters["kernel3"]["settings"])
-    kernel4 = trial.suggest_int(**hyperparameters["kernel4"]["settings"])
+    kernel1 = trial.suggest_categorical(**hyperparameters["kernel1"]["settings"])
+    kernel2 = trial.suggest_categorical(**hyperparameters["kernel2"]["settings"])
+    kernel3 = trial.suggest_categorical(**hyperparameters["kernel3"]["settings"])
+    kernel4 = trial.suggest_categorical(**hyperparameters["kernel4"]["settings"])
     pool1 = trial.suggest_int(**hyperparameters["pool1"]["settings"])
     pool2 = trial.suggest_int(**hyperparameters["pool2"]["settings"])
     pool3 = trial.suggest_int(**hyperparameters["pool3"]["settings"])
+
+    # final_size = int(int(int((144 - (kernel1 - 1))/pool1 - (kernel2 - 1))/pool2 - (kernel3 - 1))/pool3)
+    # print(final_size)
+
+    # if final_size < 5:
+    #     raise optuna.TrialPruned()
 
     conf["model"]["filters"] = [filter1, filter2, filter3, filter4]
     conf["model"]["kernel_sizes"] = [kernel1, kernel2, kernel3, kernel4]
@@ -97,17 +103,18 @@ class Objective(BaseObjective):
 
         model = gdl_model(**conf["model"])
 
-        callbacks = [KerasPruningCallback(trial, self.metric, interval=1)]
+        callbacks = []  # [KerasPruningCallback(trial, self.metric, interval=1)]
         try:
             result = model.fit(input_train_norm, output_train, xv=input_val_norm, yv=output_val, callbacks=callbacks)
-        except ValueError:
+        except:
             raise optuna.TrialPruned()
 
         results_dictionary = {
             "train_loss": result["loss"],
             "val_loss": result["val_loss"],
             "train_mse": result["mse"],
-            "val_mse": result["val_mse"]
+            "val_mse": result["val_mse"],
+            "val_mse_best": min(result["val_mse"])
         }
 
         return results_dictionary

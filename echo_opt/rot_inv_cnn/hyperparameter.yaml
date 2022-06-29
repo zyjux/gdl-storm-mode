@@ -4,8 +4,8 @@ pbs:
     jobs: 1
     bash: ["source ~/.bashrc", "conda activate storm-mode"]
     batch:
-        N: "rot_inv_echo_"
-        l: ["select=1:ncpus=8:ngpus=1:mem=64GB", "walltime=24:00:00", "gpu_type=v100"]
+        N: "rot_inv_echo"
+        l: ["select=1:ncpus=1:ngpus=1:mem=64GB", "walltime=24:00:00", "gpu_type=v100"]
         A: "NAML0001"
         q: "casper"
         o: "out"
@@ -16,7 +16,7 @@ optuna:
     storage_type: "sqlite"
     objective: "/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn/objective.py"
     direction: "minimize"
-    metric: "val_mse"
+    metric: "val_mse_best"
     n_trials: 1000
     gpu: True
     sampler:
@@ -33,13 +33,13 @@ optuna:
             type: "int"
             settings:
                 name: "batch_size"
-                low: 8
-                high: 128
+                low: 16 
+                high: 64
         model:dense_regularizer:
             type: "categorical"
             settings:
                 name: "dense_regularizer"
-                choices: [null, "L1", "L2"]
+                choices: [null, "L2"]
         filter1:
             type: "int"
             settings:
@@ -49,60 +49,56 @@ optuna:
         filter2:
             type: "int"
             settings:
-                name: "filter1"
+                name: "filter2"
                 low: 8
                 high: 128
         filter3:
             type: "int"
             settings:
-                name: "filter1"
+                name: "filter3"
                 low: 8
                 high: 128
         filter4:
             type: "int"
             settings:
-                name: "filter1"
+                name: "filter4"
                 low: 8
                 high: 128
         kernel1:
-            type: "int"
+            type: "categorical"
             settings:
                 name: "kernel1"
-                low: 3
-                high: 5
+                choices: [3]
         kernel2:
-            type: "int"
+            type: "categorical"
             settings:
-                name: "kernel1"
-                low: 3
-                high: 5
+                name: "kernel2"
+                choices: [3]
         kernel3:
-            type: "int"
+            type: "categorical"
             settings:
-                name: "kernel1"
-                low: 3
-                high: 5
+                name: "kernel3"
+                choices: [3]
         kernel4:
-            type: "int"
+            type: "categorical"
             settings:
-                name: "kernel1"
-                low: 3
-                high: 5
+                name: "kernel4"
+                choices: [3]
         pool1:
             type: "int"
             settings:
                 name: "pool1"
                 low: 2
-                high: 6
+                high: 2
         pool2:
             type: "int"
             settings:
-                name: "pool1"
+                name: "pool2"
                 low: 2
-                high: 6
+                high: 2
         pool3:
             type: "int"
             settings:
-                name: "pool1"
+                name: "pool3"
                 low: 2
-                high: 6
+                high: 2

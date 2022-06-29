@@ -8,7 +8,7 @@ model:
     dense_regularizer: null
     lr: 0.001
     optimizer: 'nadam'
-    epochs: 1 
+    epochs: 10
     batch_size: 32
     rot_inv: True
     verbose: 0
