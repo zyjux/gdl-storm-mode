@@ -5,7 +5,8 @@ import pandas as pd
 import numpy as np
 import optuna
 from echo.src.base_objective import BaseObjective
-from echo.src.pruners import KerasPruningCallback
+from keras import backend as K
+import gc
 import sys
 sys.path.append("/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn")
 from imports.GDL_model import gdl_model
@@ -26,12 +27,6 @@ def custom_updates(trial, conf):
     pool1 = trial.suggest_int(**hyperparameters["pool1"]["settings"])
     pool2 = trial.suggest_int(**hyperparameters["pool2"]["settings"])
     pool3 = trial.suggest_int(**hyperparameters["pool3"]["settings"])
-
-    # final_size = int(int(int((144 - (kernel1 - 1))/pool1 - (kernel2 - 1))/pool2 - (kernel3 - 1))/pool3)
-    # print(final_size)
-
-    # if final_size < 5:
-    #     raise optuna.TrialPruned()
 
     conf["model"]["filters"] = [filter1, filter2, filter3, filter4]
     conf["model"]["kernel_sizes"] = [kernel1, kernel2, kernel3, kernel4]
@@ -116,5 +111,9 @@ class Objective(BaseObjective):
             "val_mse": result["val_mse"],
             "val_mse_best": min(result["val_mse"])
         }
+
+        K.clear_session()
+        del model
+        gc.collect()
 
         return results_dictionary
