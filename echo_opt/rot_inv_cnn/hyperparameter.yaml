@@ -1,7 +1,7 @@
 log: True
 save_path: "/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn/results/"
 pbs:
-    jobs: 1
+    jobs: 5
     bash: ["source ~/.bashrc", "conda activate storm-mode"]
     batch:
         N: "rot_inv_echo"
