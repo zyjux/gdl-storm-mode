@@ -8,7 +8,7 @@ class RotEquivConv2D(tf.keras.layers.Layer):
     def __init__(
             self,
             out_features,
-            filt_shape, 
+            filt_shape,
             rot_axis=True,
             activation='relu',
             use_bias=True,
