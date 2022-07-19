@@ -12,6 +12,8 @@ class RotEquivConv2D(tf.keras.layers.Layer):
             rot_axis=True,
             activation='relu',
             use_bias=True,
+            kernel_regularizer=None,
+            bias_regularizer=None,
             kernel_initializer='glorot_uniform',
             bias_initializer='zeros',
             **kwargs):
@@ -22,21 +24,35 @@ class RotEquivConv2D(tf.keras.layers.Layer):
         self.activation = tf.keras.activations.get(activation)
         self.use_bias = use_bias
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
+        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         if use_bias:
             self.bias_initializer = tf.keras.initializers.get(bias_initializer)
+            self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
 
-    def build(self, input_shape):  # Create the layer when it is first called
+    def build(self, input_shape):
         self.in_features = input_shape[-1]
         self.filt_shape = tf.concat([
             self.filt_shape,  # Spatial dimensions
             [self.in_features, self.out_features]
         ], axis=0)
-        self.filt_base = tf.Variable(
-            self.kernel_initializer(self.filt_shape),  # Random initialization of filters
-            name='kernel'
+        self.filt_base = self.add_weight(
+            name="kernel",
+            shape=self.filt_shape,
+            initializer=self.kernel_initializer,
+            regularizer=self.kernel_regularizer,
         )
-        if self.use_bias:
-            self.bias = tf.Variable(self.bias_initializer((self.out_features,)), name='bias')
+        self.bias = self.add_weight(
+            name="bias",
+            shape=self.out_features,
+            initializer=self.bias_initializer,
+            regularizer=self.bias_regularizer,
+        )
+        # self.filt_base = tf.Variable(
+        #    self.kernel_initializer(self.filt_shape),  # Random initialization of filters
+        #    name='kernel'
+        # )
+        # if self.use_bias:
+        #     self.bias = tf.Variable(self.bias_initializer((self.out_features,)), name='bias')
 
     def call(self, inputs):  # Does the actual computation for each rotation
         if self.rot_axis:  # If we're already in Z^2 x C_4, convolve along each rotational layer
