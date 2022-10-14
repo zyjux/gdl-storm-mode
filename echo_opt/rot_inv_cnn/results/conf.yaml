@@ -1,0 +1,13 @@
+model:
+    filters: [32, 32, 64, 64, 128]
+    kernel_sizes: [3, 3, 3, 3, 3]
+    conv_2d_activation: 'relu'
+    pool_sizes: [2, 2, 2, 2, 1]
+    dense_activation: 'relu'
+    rot_inv: 5
+    lr: 0.001
+    optimizer: 'nadam'
+    metrics: []
+    batch_size: 32
+    epochs: 10
+    verbose: 0
