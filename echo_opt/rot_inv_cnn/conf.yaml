@@ -1,14 +1,13 @@
 model:
-    filters: [32, 32, 64, 64]
-    kernel_sizes: [3, 3, 3, 3]
-    pool_sizes: [2, 2, 2, 1]
-    metrics: ['mse']
+    filters: [32, 32, 64, 64, 128]
+    kernel_sizes: [3, 3, 3, 3, 3]
     conv_2d_activation: 'relu'
-    dense_activation: null
-    dense_regularizer: null
+    pool_sizes: [2, 2, 2, 2, 1]
+    dense_activation: 'relu'
+    rot_inv: 5
     lr: 0.001
     optimizer: 'nadam'
-    epochs: 10
+    metrics: []
     batch_size: 32
-    rot_inv: True
+    epochs: 10
     verbose: 0

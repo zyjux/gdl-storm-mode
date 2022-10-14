@@ -8,6 +8,7 @@ from echo.src.base_objective import BaseObjective
 from keras import backend as K
 import gc
 import sys
+from timeit import default_timer as timer
 sys.path.append("/glade/u/home/lverhoef/gdl-storm-mode/echo_opt/rot_inv_cnn")
 from imports.GDL_model import gdl_model
 
@@ -42,7 +43,7 @@ class Objective(BaseObjective):
     def train(self, trial, conf):
 
         # Make custom updates to model conf
-        conf = custom_updates(trial, conf)
+        # conf = custom_updates(trial, conf)
 
         # Find a list of all the datafiles
         patch_path = "/glade/scratch/lverhoef/WRF_all/track_data_hrrr_3km_nc_refl/"
@@ -50,66 +51,97 @@ class Objective(BaseObjective):
         csv_path = "/glade/scratch/lverhoef/WRF_all/track_data_hrrr_3km_csv_refl/"
         csv_files = sorted(glob(join(csv_path, "track_step_*.csv")))
 
-        # Pull selected variables from patch files and join into a single DataSet
-        num_files = 100
-        variables = ["i", "j", "REFL_COM_curr"]
+        # Pull selected variables from patch files and join into Datasets
+        num_files = 150
+        train_split = int(num_files*0.7)
+        val_split = int(num_files*0.8)
+        variables = ["REFL_COM_curr"]
         data_list = []
-        for p, patch_file in enumerate(patch_files[0:num_files]):
+        for p, patch_file in enumerate(patch_files[0:train_split]):
+            if p % 10 == 0:
+                print(f'Train {p}, {patch_file}')
             ds = xr.open_dataset(patch_file)
             data_list.append(ds[variables].compute())
             ds.close()
-        data = xr.concat(data_list, dim="p")
+        input_train = xr.concat(data_list, dim="p")["REFL_COM_curr"].expand_dims("channel", axis = -1)
+        data_list = []
+        for p, patch_file in enumerate(patch_files[train_split:val_split]):
+            if p % 10 == 0:
+                print(f'Validation {train_split + p}, {patch_file}')
+            ds = xr.open_dataset(patch_file)
+            data_list.append(ds[variables].compute())
+            ds.close()
+        input_val = xr.concat(data_list, dim="p")["REFL_COM_curr"].expand_dims("channel", axis = -1)
+        data_list = []
+        for p, patch_file in enumerate(patch_files[val_split:num_files]):
+            if p % 10 == 0:
+                print(f'Test {val_split + p}, {patch_file}')
+            ds = xr.open_dataset(patch_file)
+            data_list.append(ds[variables].compute())
+            ds.close()
+        input_test = xr.concat(data_list, dim="p")["REFL_COM_curr"].expand_dims("channel", axis = -1)
 
+        # Pull variables from csv files and join into an array
+        
         # Pull variables from csv files and join into an array
         csv_variables = ["major_axis_length", "minor_axis_length"]
         csv_data_list = []
-        for p, csv_file in enumerate(csv_files[0:num_files]):
+        for p, csv_file in enumerate(csv_files[0:train_split]):
+            if p % 10 == 0:
+                print(f'Train {p}, {csv_file}')
             csv_ds = pd.read_csv(csv_file)
             csv_data_list.append(csv_ds[csv_variables].to_xarray().rename({'index': 'p'}))
-        csv_data = xr.concat(csv_data_list, dim="p")
+        output_train = xr.concat(csv_data_list, dim="p").to_array().transpose()
+        csv_data_list = []
+        for p, csv_file in enumerate(csv_files[train_split:val_split]):
+            if p % 10 == 0:
+                print(f'Validation {train_split + p}, {csv_file}')
+            csv_ds = pd.read_csv(csv_file)
+            csv_data_list.append(csv_ds[csv_variables].to_xarray().rename({'index': 'p'}))
+        output_val = xr.concat(csv_data_list, dim="p").to_array().transpose()
+        csv_data_list = []
+        for p, csv_file in enumerate(csv_files[val_split:num_files]):
+            if p % 10 == 0:
+                print(f'Test {val_split + p}, {csv_file}')
+            csv_ds = pd.read_csv(csv_file)
+            csv_data_list.append(csv_ds[csv_variables].to_xarray().rename({'index': 'p'}))
+        output_test = xr.concat(csv_data_list, dim="p").to_array().transpose()
 
-        # Create DataArrays for input and output data
-        input_data = data["REFL_COM_curr"].expand_dims("channel", axis=-1)
-        output_data = csv_data.to_array().transpose()
-
-        # Find indices to split data into 70% training, 10% validation, and 20% test. The training and validation data are shuffled, while the test data is temporally different.
-        # rng = np.random.default_rng()
-        split_point_1 = int(0.7 * input_data.shape[0])
-        split_point_2 = int(0.8 * input_data.shape[0])
-        train_val_indices = np.arange(0, split_point_2)
-        # rng.shuffle(train_val_indices)
-        train_indices = train_val_indices[:split_point_1]
-        val_indices = train_val_indices[split_point_1:]
-
-        # Normalize the training input data and actually evaluate the input_train array which will be fed into the network
-        input_train = input_data.values[train_indices]
+        # Normalize the input data
         scale_stats = pd.DataFrame(index=[0], columns=["mean", "sd"])
         scale_stats.loc[0, "mean"] = input_train.mean()
         scale_stats.loc[0, "sd"] = input_train.std()
         input_train_norm = (input_train - scale_stats.loc[0, "mean"]) / scale_stats.loc[0, "sd"]
-
-        # Normalize the validation data
-        input_val = input_data.values[val_indices]
         input_val_norm = (input_val - scale_stats.loc[0, "mean"]) / scale_stats.loc[0, "sd"]
-
-        # Split output into train, test, and validation sets
-        output_train = output_data[train_indices]
-        output_val = output_data[val_indices]
+        input_test_norm = (input_test - scale_stats.loc[0, "mean"]) / scale_stats.loc[0, "sd"]
+        
+        # Normalize the output data
+        output_scale_stats = pd.DataFrame(index=range(output_train.shape[-1]), columns=["mean", "sd"])
+        output_scale_stats.loc[:, "mean"] = output_train.mean(dim="p")
+        output_scale_stats.loc[:, "sd"] = output_train.std(dim="p")
+        output_train_norm = xr.DataArray(coords=output_train.coords, dims=output_train.dims)
+        output_val_norm = xr.DataArray(coords=output_val.coords, dims=output_val.dims)
+        output_test_norm = xr.DataArray(coords=output_test.coords, dims=output_test.dims)
+        for i in range(output_train.shape[-1]):
+            output_train_norm[:, i] = (output_train[:, i] - output_scale_stats.loc[i, "mean"]) / output_scale_stats.loc[i, "sd"]
+            output_val_norm[:, i] = (output_val[:, i] - output_scale_stats.loc[i, "mean"]) / output_scale_stats.loc[i, "sd"]
+            output_test_norm[:, i] = (output_test[:, i] - output_scale_stats.loc[i, "mean"]) / output_scale_stats.loc[i, "sd"]
 
         model = gdl_model(**conf["model"])
 
         callbacks = []  # [KerasPruningCallback(trial, self.metric, interval=1)]
         try:
-            result = model.fit(input_train_norm, output_train, xv=input_val_norm, yv=output_val, callbacks=callbacks)
+            start = timer()
+            result = model.fit(input_train_norm, output_train_norm, xv=input_val_norm, yv=output_val_norm, callbacks=callbacks)
+            tot_time = timer() - start
         except:
             raise optuna.TrialPruned()
 
         results_dictionary = {
             "train_loss": result["loss"],
             "val_loss": result["val_loss"],
-            "train_mse": result["mse"],
-            "val_mse": result["val_mse"],
-            "val_mse_best": min(result["val_mse"])
+            "val_loss_best": min(result["val_loss"]),
+            "tot_time": tot_time
         }
 
         K.clear_session()

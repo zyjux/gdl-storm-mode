@@ -14,11 +14,13 @@ class gdl_model(object):
         conv2d_regularizer=None,
         pool_sizes=(4,),
         pool_dropout=0.0,
+        latent_size=32,
         dense_activation=None,
-        dense_regularizer=None,
+        dense_regularizer=None,  
         dense_dropout=0.0,
-        rot_inv=True,
+        rot_inv=1,
         output_activation=None,
+        output_regularizer=None,
         lr=0.001,
         optimizer="nadam",
         adam_beta_1=0.9,
@@ -39,11 +41,16 @@ class gdl_model(object):
         self.conv2d_regularizer = conv2d_regularizer
         self.pool_sizes = [tuple((v, v)) for v in pool_sizes]
         self.pool_dropout = pool_dropout
-        self.rot_inv = rot_inv
+        self.latent_size = latent_size
         self.dense_activation = dense_activation
         self.dense_regularizer = dense_regularizer
         self.dense_dropout = dense_dropout
+        if not rot_inv:
+            self.rot_inv = 9999
+        else:
+            self.rot_inv = rot_inv
         self.output_activation = output_activation
+        self.output_regularizer = output_regularizer
         self.lr = lr
         self.optimizer = optimizer
         self.optimizer_obj = None
@@ -68,30 +75,58 @@ class gdl_model(object):
                 rot_axis=False,
                 input_shape=input_shape,
                 activation=self.conv2d_activation,
-                # kernel_regularizer=self.conv2d_regularizer
+                kernel_regularizer=self.conv2d_regularizer
             )
         )
         self.model.add(GDL_layers.RotEquivPool2D(self.pool_sizes[0]))
+        if self.rot_inv == 1:
+            self.model.add(
+                GDL_layers.RotInvPool()
+            )
         for h in range(1, len(self.filters)):
-            self.model.add(
-                GDL_layers.RotEquivConv2D(
-                    self.filters[h],
-                    self.kernel_sizes[h],
-                    activation=self.conv2d_activation,
-                    # kernel_regularizer=self.conv2d_regularizer
+            if h < self.rot_inv:
+                self.model.add(
+                    GDL_layers.RotEquivConv2D(
+                        self.filters[h],
+                        self.kernel_sizes[h],
+                        activation=self.conv2d_activation,
+                        kernel_regularizer=self.conv2d_regularizer
+                    )
                 )
-            )
-            self.model.add(
-                GDL_layers.RotEquivPool2D(self.pool_sizes[h])
-            )
-        if self.rot_inv:
-            self.model.add(GDL_layers.RotInvPool())
+                self.model.add(
+                    GDL_layers.RotEquivPool2D(self.pool_sizes[h])
+                )
+                if h+1 == self.rot_inv:
+                    self.model.add(
+                        GDL_layers.RotInvPool()
+                    )
+            else:
+                self.model.add(
+                    layers.Conv2D(
+                        self.filters[h],
+                        self.kernel_sizes[h],
+                        activation=self.conv2d_activation,
+                        kernel_regularizer=self.conv2d_regularizer
+                    )
+                )
+                self.model.add(
+                    layers.MaxPool2D(self.pool_sizes[h])
+                )
         self.model.add(layers.Flatten())
-        self.model.add(layers.Dense(
-            output_shape,
-            activation=self.dense_activation,
-            kernel_regularizer=self.dense_regularizer
-        ))
+        self.model.add(
+            layers.Dense(
+                self.latent_size,
+                activation=self.dense_activation,
+                kernel_regularizer=self.dense_regularizer
+            )
+        )
+        self.model.add(
+            layers.Dense(
+                output_shape,
+                activation=self.output_activation,
+                kernel_regularizer=self.output_regularizer
+            )
+        )
 
         if self.optimizer == "nadam":
             self.optimizer_obj = tf.keras.optimizers.Nadam(
