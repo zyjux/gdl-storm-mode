@@ -227,8 +227,21 @@ class CNN_model(object):
 
     def build_model(self, input_shape, output_shape):
         self.model = models.Sequential()
+        
+        self.model.add(
+            layers.Conv2D(
+                self.filters[0],
+                self.kernel_sizes[0],
+                activation=self.conv2d_activation,
+                kernel_regularizer=self.conv2d_regularizer,
+                input_shape=input_shape
+            )
+        )
+        self.model.add(
+            layers.MaxPooling2D(self.pool_sizes[0])
+        )
 
-        for h in range(0, len(self.filters)):
+        for h in range(1, len(self.filters)):
             self.model.add(
                 layers.Conv2D(
                     self.filters[h],
