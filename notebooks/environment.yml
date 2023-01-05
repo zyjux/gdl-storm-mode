@@ -1,0 +1,21 @@
+name: storm-mode
+channels:
+  - defaults
+dependencies:
+  - python
+  - cudnn=8.1.0
+  - cudatoolkit=11.2
+  - ipykernel
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - pandas
+  - xarray
+  - netcdf4
+  - tqdm
+  - dask
+  - shap
+  - xgboost
+  - spacy
+  - seaborn
+prefix: /glade/u/home/lverhoef/.conda/envs/storm-mode
